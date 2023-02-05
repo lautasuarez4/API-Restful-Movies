@@ -1,5 +1,6 @@
 package com.codigolautaro.app.movies.controllers;
 
+import com.codigolautaro.app.movies.exceptions.RequestException;
 import com.codigolautaro.app.movies.models.Movie;
 import com.codigolautaro.app.movies.services.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,54 +17,44 @@ public class MovieController
     @Autowired
     private MovieService movieService;
 
-    @GetMapping("/allmovies")
+    @GetMapping("/all")
     public ResponseEntity getAllMovies()
     {
         try
         {
-            return new ResponseEntity<>((List<Movie>)movieService.getALLMovies(), HttpStatus.OK);
+            return new ResponseEntity<>(movieService.getALLMovies(), HttpStatus.OK);
         } catch (RuntimeException e)
         {
             return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @GetMapping("/{id}")
     public ResponseEntity getMovieById(@PathVariable Long id)
     {
         if (id <= 0)
-        {
-            return new ResponseEntity<>("Id must be > 0", HttpStatus.BAD_REQUEST);
-        }
-        else
-        {
-            try
-            {
-                return new ResponseEntity<>(movieService.getMovieById(id), HttpStatus.OK);
-            } catch (RuntimeException e)
-            {
-                return new ResponseEntity<>("Movie doesn't exist", HttpStatus.NOT_FOUND);
-            }
-        }
+            throw new RuntimeException("Id must be > 0");
+
+        Movie movie = movieService.getMovieById(id);
+
+        if(movie == null)
+            throw new RequestException("Movie doesn't exist");
+
+        return new ResponseEntity<>(movie, HttpStatus.OK);
+
     }
 
     @PostMapping("/save")
     public ResponseEntity saveMovie(@RequestBody (required = false) List<Movie> m)
     {
-        if (m == null)
-        {
+        if (m == null || camposNulos(m))
             return new ResponseEntity<>("Please check again, wrong request", HttpStatus.BAD_REQUEST);
-        }
-        else
+        try
         {
-            try
-            {
-                return new ResponseEntity(movieService.saveMovie(m), HttpStatus.OK);
-            } catch (RuntimeException e)
-            {
-                return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+            return new ResponseEntity(movieService.saveMovie(m), HttpStatus.OK);
+        } catch (RuntimeException e)
+        {
+            return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -71,40 +62,52 @@ public class MovieController
     public ResponseEntity updateMovie(@PathVariable Long id, @RequestBody(required = false) Movie request )
     {
         if (id<=0)
-        {
             return new ResponseEntity<>("Id must be > 0", HttpStatus.BAD_REQUEST);
-        }
+
         if (request == null)
-        {
             return new ResponseEntity<>("Please check again, wrong request", HttpStatus.BAD_REQUEST);
-        }
-        else
+
+        try
         {
-            try
-            {
-                return new ResponseEntity<>(movieService.updateMovies(id, request), HttpStatus.OK);
-            } catch (RuntimeException e)
-            {
-                return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+            return new ResponseEntity<>(movieService.updateMovies(id, request), HttpStatus.OK);
+        } catch (RuntimeException e)
+        {
+            return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity deleteMovie(@PathVariable Long id)
     {
-        if (id<=0)
+        if (id <= 0)
+            throw new RuntimeException("Id must be > 0");
+
+        Movie movie = movieService.getMovieById(id);
+
+        if(movie == null)
+            throw new RequestException("Movie doesn't exist");
+
+        return new ResponseEntity<>(movieService.deleteMovie(id), HttpStatus.OK);
+    }
+
+    @DeleteMapping("delete/all")
+    public ResponseEntity deleteAllMovies()
+    {
+        try {
+            return new ResponseEntity<>(movieService.deleteAllMovies(), HttpStatus.OK);
+        } catch (RuntimeException e)
         {
-            return new ResponseEntity<>("Id must be > 0", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("An error occured when processing your request", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        else
+    }
+
+    public boolean camposNulos(List<Movie> movies)
+    {
+        for (Movie m : movies)
         {
-            try
-            {
-                return new ResponseEntity<>(movieService.deleteMovie(id), HttpStatus.OK);
-            } catch (RuntimeException e) {
-                return new ResponseEntity<>("movie doesn't exist", HttpStatus.NOT_FOUND);
-            }
+            if(m.getTitle() == null || m.getGenre() == null || m.getDescription() == null || m.getDuration()==0)
+                return true;
         }
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 package com.codigolautaro.app.movies.services;
 
+import com.codigolautaro.app.movies.exceptions.RequestException;
 import com.codigolautaro.app.movies.models.Movie;
 import com.codigolautaro.app.movies.repositories.IMovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,15 +19,16 @@ public class MovieService
         return movieRepository.findAll();
     }
 
-    public Movie getMovieById(Long id) {
-        return (Movie) movieRepository.findById(id).get();
+    public Movie getMovieById(Long id)
+    {
+        return movieRepository.findById(id).orElse(null);
     }
 
     public String saveMovie(List<Movie> movies)
     {
         for (Movie m : movies)
         {
-            movieRepository.save(m);
+        movieRepository.save(m);
         }
         return "Saved";
 
@@ -34,7 +36,7 @@ public class MovieService
 
     public String updateMovies(Long id, Movie request)
     {
-        Movie movieToUpdate = (Movie) movieRepository.findById(id).get();
+        Movie movieToUpdate = movieRepository.findById(id).get();
         movieToUpdate.setTitle(request.getTitle());
         movieToUpdate.setGenre(request.getGenre());
         movieToUpdate.setDuration(request.getDuration());
@@ -47,6 +49,12 @@ public class MovieService
     {
         movieRepository.deleteById(id);
         return "Movie deleted";
+    }
+
+    public String deleteAllMovies()
+    {
+        movieRepository.deleteAll();
+        return "All movies were removed";
     }
 
 }
